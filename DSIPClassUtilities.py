@@ -9,7 +9,7 @@ import fastparquet
 
 # utility functions to save and read a dataframe for later use
 
-def save_dataframe(df, name, savedir='./', makeunique=False):
+def save_dataframe(df, name, savedir='', makeunique=False):
     '''
     df - the dataframe to save
     name - the desired file name as a string (.pqt will be added as the extension) 
@@ -29,26 +29,36 @@ def save_dataframe(df, name, savedir='./', makeunique=False):
 
     # strip out invalid characters
     cleanName = ''.join(c for c in name if c in validFilenameChars)
-    # format a date and time
-    ftime = pd.to_datetime('today').strftime('%Y%m%dT%H%M%S')
     # put them all together
     if makeunique:
-        finalName = os.path.join(savedir, '{}_{}.pqt'.format(ftime,cleanName))
+        # format a date and time
+        ftime = pd.to_datetime('today').strftime('%Y%m%dT%H%M%S')
+        sSavePath = os.path.join(savedir, '{}_{}.pqt'.format(ftime,cleanName))
     else:
-        finalName = os.path.join(savedir, '{}.pqt'.format(cleanName))
+        sSavePath = os.path.join(savedir, '{}.pqt'.format(cleanName))
     # save using parquet format
-    print('Saving to parquet file: {}'.format(finalName))
-    df.to_parquet(finalName, index=True, engine='fastparquet', compression='gzip')
-    # return the filename used       
-    return finalName
+    print('Saving dataframe to file: {}'.format(sSavePath))
+    df.to_parquet(sSavePath, index=True, engine='fastparquet', compression='gzip')
+    # return the full path to the file       
+    return sSavePath
 
-def read_dataframe( fName, savedir='./' ):
+def read_dataframe( fName, savedir='' ):
     '''
     Read a dataframe using the same engine as save_dataframe()
+    fName - name of the file to read. If not already present, 
+    .pqt will be added as an extension.
     '''
-    fullpath = os.path.join(savedir, fName)
+    # See if we need to add the extension
+    if not (len(fName)-4 == fName.rfind('.pqt')):
+        fName = fName+'.pqt'
+    # Create the full path to the file
+    if len(savedir) > 0:
+        fullpath = os.path.join(savedir, fName)
+    else:
+        fullpath = fName
+    # If the file exists, read it
     if os.path.exists(fullpath):
-        print('Reading from parquet file: {}'.format(fullpath))
+        #print('Reading from file: {}'.format(fullpath))
         sys.stdout.flush()
         df = pd.read_parquet( fullpath, engine='fastparquet' )
         return df 
